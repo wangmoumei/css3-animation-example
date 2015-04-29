@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+
+<title>无标题文档</title>
+<style>
+*{padding:0;margin:0;}
+#canvas{background:#fea501;padding-bottom:10px;position:relative;height:600px;}
+#canvas input{padding:10px;}
+#wine-height{
+	-webkit-animation: 3s water linear infinite;
+	-moz-animation: 3s water linear infinite;
+	animation: 3s water linear infinite;
+}
+@-webkit-keyframes water {
+  0% { background-position:0 0; }
+  100% { background-position:200px 0; }
+}
+@-moz-keyframes water {
+  0% { background-position:0 0; }
+  100% { background-position:200px 0; }
+}
+@keyframes water{
+  0% { background-position:0 0; }
+  100% { background-position:200px 0; }
+}
+</style>
+</head>
+<body>
+<div id="canvas">
+<input type="button" value="加水" id="add">
+<input type="button" value="减水" id="cut">
+<input type="button" value="加满" id="addmax">
+<input type="button" value="减光" id="cutmax">
+</div>
+
+<script>
+function Goblet(opt){
+	obj = this;
+	this.cupwidth = opt.cupwidth || 230;
+	this.cupbottom = this.cupwidth / 230 * 10;
+	this.height = this.cupwidth / 23 * 40 -1;
+	this.width = opt.width || 0;
+	this.x = opt.x || 10;
+	this.y = opt.y||10;
+	this.success = opt.success ||function(){alert("成功")};
+	this.overflow = opt.overflow || function(){alert("溢出")};
+	this.less = opt.less || function(){alert("不够")};
+	this.canvas = document.getElementById(opt.canvas || 'canvas');
+	if(!this.canvas){alert("缺少div id=" + (opt.canvas || 'canvas')); return 0;}
+	var ww = this.cupwidth/2;
+	this.canvas.innerHTML+='<div style="position:absolute;left:'+this.x+'px;top:'+this.y+'px;height:'+this.height+'px;overflow:hidden;"><div id="wine-height" style="position:absolute;z-index:1;width:100%;bottom:2px;left:0;background-image:url(waterbg.jpg);background-size:200px;background-repeat:repeat-x;"></div><div style="position:relative;z-index:3;height:'+this.height+'px;overflow:hidden;display:box;display:-webkit-box;display:-moz-box;display:-ms-box;display:flex;display:-webkit-flex;"><div style="width:'+ww+'px;background-image:url(cup.png);background-size:200%;"></div><div id="goblet-width" style="width:'+this.width+'px;border-bottom:'+this.cupbottom+'px solid #fff;"></div><div style="width:'+ww+'px;background-image:url(cup.png);background-size:200%;background-position:100% 0;"></div></div></div>';
+	this.gobletwidth = document.getElementById('goblet-width');
+	this.water = document.getElementById('wine-height');
+	this.waterheight = 0;
+	this.water.style.backgroundColor = "#bc121a";//bc121a
+	this.maxheight = this.height * 0.98;
+	this.fx = function (f,t,fn,end,tm,pow){
+		var D=Date;
+		var d=new D;
+		var e;
+		var c=tm||240;
+		var pow=pow||2;
+		return e=setInterval(function (){
+			var z=Math.min(1,(new D-d)/c);
+			(false===fn(+f+(t-f)*Math.pow(z,pow),z)||z==1) && end && end(clearTimeout(e));
+		},10);
+	}
+	this.GetHeight = function(){return obj.height};
+	this.GetWaterHeight = function(){return obj.waterheight}
+	this.SetWaterHeight = function(opt){obj.waterheight = opt.height || (opt.percent/100 * obj.maxheight) || opt || 0;obj.water.style.height = obj.waterheight + 'px'}
+	this.Go = function(opt){
+		var anispeed = opt.speed*100 ||500;
+		var height = opt.height || (opt.percent/100 * obj.maxheight) || 0;
+		if(height<0) return 0;
+		if(height == obj.maxheight)
+				obj.fx(obj.waterheight,height,function(x){obj.water.style.height=x+"px";},function(){obj.success()},anispeed,.3)
+		else if(height > obj.maxheight){
+			height = obj.height;
+			obj.fx(obj.waterheight,height,function(x){obj.water.style.height=x+"px";},function(){obj.overflow()},anispeed,.3)
+		}else 
+			obj.fx(obj.waterheight,height,function(x){obj.water.style.height=x+"px";},function(){obj.less()},anispeed,.3)
+		obj.waterheight = height;
+	}
+	this.SetWidth = function(width){obj.width = width;obj.gobletwidth.style.width = width + "px";}
+}
+
+var cup = new Goblet({x:50,y:100,cupwidth:200,width:1,less:function(){},success:function(){alert("刚好满了")},overflow:function(){alert("满出来了")}});
+var water = 0;
+document.getElementById('add').onclick = function(){
+	water+=10;
+	cup.Go({percent:water});
+}
+document.getElementById('cut').onclick = function(){
+	water-=10;
+	cup.Go({percent:water});
+}
+document.getElementById('addmax').onclick = function(){
+	water=100;
+	cup.Go({percent:water});
+}
+document.getElementById('cutmax').onclick = function(){
+	water=0;
+	cup.Go({percent:water});
+}
+/*
+var cup = new Goblet({
+	canvas:'canvas' // 主体div的ID
+	,x:100	//横坐标
+	,y:200	//纵坐标
+	,cupwidth:50	//杯子大小
+	,width:10			//杯子宽度
+	,success:function(){}		//成功时 回调函数
+	,less:function(){}			//不够时 回调函数
+	,overflow:function(){}	//溢出时 回调函数
+});
+cup.GetHeight();	//获取杯子高度
+cup.SetWidth(width)	//设置杯子宽度
+cup.GetWaterHeight()	// 获取当前杯内水高度
+cup.SetWaterHeight(opt)	//设置杯子内水的高度 opt = 100 || {height:100,percent:50}
+cup.Go({
+	height:100	//高度 像素单位 优先
+	,percent:50	//高度 百分比
+	,speed:100	//速度 取值>0 越小速度越快
+})	//加水
+
+*/
+
+
+</script>
+</body>
+</html>
